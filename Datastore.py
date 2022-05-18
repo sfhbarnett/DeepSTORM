@@ -3,10 +3,10 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
 import random
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 import tifffile as tf
+
 
 class TiffStack:
     """
@@ -20,9 +20,13 @@ class TiffStack:
         page = self.ims.pages[0]
         self.width = page.shape[0]
         self.height = page.shape[1]
+        self.upsample = 8
 
     def getimage(self, index):
-        return self.ims.pages[index].asarray()
+        img = self.ims.pages[index].asarray()
+        newsize = tuple([self.upsample*x for x in img.shape])
+        img = np.array(Image.fromarray(img).resize(newsize, Image.Resampling.NEAREST))
+        return img.astype('float32')
 
 
 def generate_masks(csvpath):
@@ -40,7 +44,7 @@ def generate_masks(csvpath):
     height = 64
     pixel_size = 160
     upsample = 8
-    mask = np.zeros([width * upsample, height * upsample,20])
+    mask = np.zeros([width * upsample, height * upsample, 20])
 
     for frame in range(20):
         for p in points:
@@ -67,34 +71,35 @@ def transform(image, mask):
 
 
 class Datastore(Dataset):
-    def __init__(self, filelist, masklist, root_dir, transforms=None):
-        self.images = filelist
-        self.masks = masklist
-        self.root_dir = root_dir
-        self.trainimagepath = os.path.join(self.root_dir, 'image')
-        self.trainmaskpath = os.path.join(self.root_dir, 'label')
+    def __init__(self, transforms=None):
         self.transform = transforms
         self.masks = generate_masks('DeepSTORM dataset_v1/BIN4 - Training dataset/SimulatedDataset.csv')
         self.imstack = TiffStack('DeepSTORM dataset_v1/BIN4 - Training dataset/SimulatedDataset.tif')
 
     def __len__(self):
-        return len(self.images)
+        return self.imstack.nfiles
 
     def __getitem__(self, idx):
-        img_name = os.path.join(self.trainimagepath, self.images[idx])
         if self.transform is not None:
             image = self.transform(self.imstack.getimage(idx))
+            image -= torch.min(image)
+            image /= torch.max(image)
             masktransform = transforms.Compose([transforms.ToTensor()])
             mask = self.masks[:, :, idx]
-            mask = masktransform(mask)
             # Flip image and elastic deform
             image, mask = transform(image, mask)
+            mask -= torch.min(mask)
+            mask /= torch.max(mask)
             sample = {'image': image, 'mask': mask}
         else:
             image = self.imstack.getimage(idx)
-            mask = self.masks[:,:,idx]
+            mask = self.masks[:, :, idx]
             sample = {'image': image, 'mask': mask}
         return sample
 
+
 if __name__ == '__main__':
-    generate_masks()
+    ts = TiffStack('DeepSTORM dataset_v1/BIN4 - Training dataset/SimulatedDataset.tif')
+    plt.imshow(ts.getimage(1))
+    plt.show()
+
