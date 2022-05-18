@@ -6,9 +6,26 @@ import random
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import tifffile as tf
+
+class TiffStack:
+    """
+    Tiffstack holds information about the images to process and accesses them in a memory-efficient manner
+    improvements: implement a TiffFile class for each image to more readily access parameters such as width/height
+    :param pathname to the tif image
+    """
+    def __init__(self, pathname):
+        self.ims = tf.TiffFile(pathname)
+        self.nfiles = len(self.ims.pages)
+        page = self.ims.pages[0]
+        self.width = page.shape[0]
+        self.height = page.shape[1]
+
+    def getimage(self, index):
+        return self.ims.pages[index].asarray()
 
 
-def generate_masks():
+def generate_masks(csvpath):
     csvpath = 'DeepSTORM dataset_v1/BIN4 - Training dataset/SimulatedDataset.csv'
     points = []
 
@@ -57,24 +74,25 @@ class Datastore(Dataset):
         self.trainimagepath = os.path.join(self.root_dir, 'image')
         self.trainmaskpath = os.path.join(self.root_dir, 'label')
         self.transform = transforms
+        self.masks = generate_masks('DeepSTORM dataset_v1/BIN4 - Training dataset/SimulatedDataset.csv')
+        self.imstack = TiffStack('DeepSTORM dataset_v1/BIN4 - Training dataset/SimulatedDataset.tif')
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
         img_name = os.path.join(self.trainimagepath, self.images[idx])
-        mask_name = os.path.join(self.trainmaskpath, self.images[idx])
         if self.transform is not None:
-            image = self.transform(Image.open(img_name))
+            image = self.transform(self.imstack.getimage(idx))
             masktransform = transforms.Compose([transforms.ToTensor()])
-            mask = Image.open(mask_name)
+            mask = self.masks[:, :, idx]
             mask = masktransform(mask)
             # Flip image and elastic deform
             image, mask = transform(image, mask)
             sample = {'image': image, 'mask': mask}
         else:
-            image = Image.open(img_name)
-            mask = Image.open(mask_name)
+            image = self.imstack.getimage(idx)
+            mask = self.masks[:,:,idx]
             sample = {'image': image, 'mask': mask}
         return sample
 
