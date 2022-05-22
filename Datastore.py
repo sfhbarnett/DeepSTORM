@@ -49,8 +49,8 @@ def generate_masks(csvpath):
     for frame in range(20):
         for p in points:
             if p[1] == frame+1:
-                x = round(float(p[2]) // pixel_size) * upsample
-                y = round(float(p[3]) // pixel_size) * upsample
+                x = round(float(p[3]) / pixel_size * upsample)-1
+                y = round(float(p[2]) / pixel_size * upsample)-1
                 mask[x, y, frame] += 100
     # plt.imshow(mask[:,:,-1])
     # plt.show()
@@ -90,7 +90,7 @@ class Datastore(Dataset):
             image, mask = transform(image, mask)
             mask -= torch.min(mask)
             mask /= torch.max(mask)
-            sample = {'image': image, 'mask': mask}
+            sample = {'image': image.float(), 'mask': mask.float()}
         else:
             image = self.imstack.getimage(idx)
             mask = self.masks[:, :, idx]
