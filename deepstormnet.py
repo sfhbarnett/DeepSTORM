@@ -42,7 +42,7 @@ class Down(nn.Module):
 class Up(nn.Module):
     def __init__(self, inchannels, outchannels):
         super(Up, self).__init__()
-        #self.up = nn.ConvTranspose2d(inchannels, inchannels//2, stride=2, kernel_size=2)
+        #self.up = nn.ConvTranspose2d(inchannels, inchannels, stride=2, kernel_size=2)
         self.up = nn.Upsample(scale_factor=2)
         self.conv = nn.Sequential(
             nn.Conv2d(inchannels, outchannels, kernel_size=3, padding=1, padding_mode='replicate', bias=False),
