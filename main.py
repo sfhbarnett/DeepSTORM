@@ -10,15 +10,8 @@ from PIL import Image
 from torchvision import transforms
 
 
-def DeepSTORMLoss(output, target,crit1,crit2):
-    #print(output)
-    #loss = torch.mean(torch.mean(torch.pow(output-target,2)))
-    #loss = torch.mean(torch.mean(torch.pow(output - target,2)) + torch.linalg.matrix_norm(output, ord=1))
-    #loss = mse(output,target) + l1(output,torch.zeros(target.shape))
-    #loss = mse(output,target)
-    #loss = crit1(output,target) + crit2(output,torch.zeros(target.shape))
-    #loss = torch.mean(output,0)
-    #torch.mean(torch.mean(torch.pow(output - target, 2), 2), 2)
+def DeepSTORMLoss(output, target):
+    #Custom loss function, mse and L1
     loss = torch.mean(torch.mean(torch.mean(torch.pow(output - target, 2), 2), 2) + torch.mean(torch.mean(torch.abs(output-target),2),2))
     return loss
 
@@ -36,34 +29,31 @@ batch_N = 16
 trainloader = torch.utils.data.DataLoader(dataset, batch_size=batch_N, shuffle=True, num_workers=0)
 
 epochs = 100
-lr = 0.00001
+lr = 0.0001
+startepoch = 0
 
 
 optimizer = optim.Adam(net.parameters(), lr=lr)
 criterion = DeepSTORMLoss
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='min',factor=0.1,patience=5,min_lr=0.00000001,verbose=True)
-msecriterion = nn.MSELoss()
-l1criterion = nn.L1Loss()
-
-criterion1 = nn.MSELoss()
-criterion2 = nn.L1Loss()
 
 blurrer = transforms.GaussianBlur(kernel_size=(7,7),sigma=(1,1))
 
-fig = plt.figure(figsize=(18, 8), dpi=80, facecolor='w', edgecolor='k')
+fig = plt.figure(figsize=(18, 6), dpi=80, facecolor='w', edgecolor='k')
 fig.tight_layout()
 
 try:
     checkpoint = torch.load('model.pt')
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    epoch = checkpoint['epoch']
+    startepoch = checkpoint['epoch']
     loss = checkpoint['loss']
     print('Model loaded')
 except FileNotFoundError:
     print(f"No model file found")
-
-for epoch in range(epochs):
+a = 1
+for epoch in range(startepoch, epochs):
+    print(f'Epoch number: {epoch}')
     epoch_loss = 0.0
     for i, data in enumerate(trainloader, 0):
         inputs = data['image']
@@ -73,11 +63,11 @@ for epoch in range(epochs):
         optimizer.zero_grad()
         predicted_masks = net(inputs)
 
-        masks = blurrer(masks)*100.0
+        #masks = blurrer(masks)*100.0
+        masks = masks*100
         predicted_masks = blurrer(predicted_masks)
 
-        loss = criterion(predicted_masks, masks,criterion1,criterion2)
-        #loss = msecriterion(predicted_masks, masks) + l1criterion(predicted_masks, torch.zeros(masks.shape))
+        loss = criterion(predicted_masks, masks)
         epoch_loss += loss.item()
 
         plt.subplot(1, 4, 1)
@@ -107,13 +97,14 @@ for epoch in range(epochs):
         optimizer.step()
 
         if i % 100 == 0:
-            modelsavepath = 'model.pt'
+            modelsavepath = 'model_'+str(epoch)+'_'+str(a)+'.pt'
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': net.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'loss': loss,
             }, modelsavepath)
+            a += 1
 
             print(f'Model saved at {modelsavepath}')
     scheduler.step(epoch_loss)
