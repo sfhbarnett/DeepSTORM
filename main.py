@@ -41,17 +41,21 @@ blurrer = transforms.GaussianBlur(kernel_size=(7,7),sigma=(1,1))
 
 fig = plt.figure(figsize=(18, 6), dpi=80, facecolor='w', edgecolor='k')
 fig.tight_layout()
+# Try and load in previous checkpoint
 
 try:
-    checkpoint = torch.load('model.pt')
+    checkpoint = torch.load('model_1_9.pt')
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
     startepoch = checkpoint['epoch']
     loss = checkpoint['loss']
     print('Model loaded')
 except FileNotFoundError:
     print(f"No model file found")
-a = 1
+
+a = 10
+
 for epoch in range(startepoch, epochs):
     print(f'Epoch number: {epoch}')
     epoch_loss = 0.0
@@ -63,19 +67,19 @@ for epoch in range(startepoch, epochs):
         optimizer.zero_grad()
         predicted_masks = net(inputs)
 
-        #masks = blurrer(masks)*100.0
         masks = masks*100
         predicted_masks = blurrer(predicted_masks)
 
         loss = criterion(predicted_masks, masks)
         epoch_loss += loss.item()
 
+        # Plot to monitor progress
         plt.subplot(1, 4, 1)
         plt.title("Input")
         im = plt.imshow(inputs[0].permute(1, 2, 0).detach().numpy().squeeze())
         plt.colorbar(im, orientation='horizontal', fraction=0.046, pad=0.04)
         plt.subplot(1, 4, 2)
-        plt.title("Mask")
+        plt.title("Ground Truth")
         im = plt.imshow(masks[0].detach().numpy().squeeze())
         plt.colorbar(im, orientation='horizontal', fraction=0.046, pad=0.04)
         plt.subplot(1, 4, 3)
@@ -83,8 +87,16 @@ for epoch in range(startepoch, epochs):
         im = plt.imshow(predicted_masks[0].detach().numpy().squeeze())
         plt.colorbar(im, orientation='horizontal', fraction=0.046, pad=0.04)
         plt.subplot(1, 4, 4)
-        plt.title("Prediction")
-        im = plt.imshow(predicted_masks[0].detach().numpy().squeeze(),vmin=0)
+        plt.title("Prediction overlay")
+        scale1 = predicted_masks[0].detach().numpy().squeeze()
+        scale1 = (scale1 - np.min(scale1)) / (np.max(scale1) - np.min(scale1))*255
+        filler = np.zeros(scale1.shape).astype('uint8')
+        scale1rgb = np.dstack((scale1.astype('uint8'),filler,filler))
+        scale2 = masks[0].detach().numpy().squeeze()
+        scale2 = (scale2 - np.min(scale2)) / (np.max(scale2) - np.min(scale2)) * 255
+        scale2rgb = np.dstack((filler,scale2.astype('uint8'),filler))
+        blend = Image.blend(Image.fromarray(scale1rgb).convert('RGBA'),Image.fromarray(scale2rgb).convert('RGBA'),0.5)
+        im = plt.imshow(blend)
         plt.colorbar(im, orientation='horizontal', fraction=0.046, pad=0.04)
         plt.show()
         plt.draw()
@@ -96,6 +108,7 @@ for epoch in range(startepoch, epochs):
         loss.backward()
         optimizer.step()
 
+        # Checkpoint every 100 images
         if i % 100 == 0:
             modelsavepath = 'model_'+str(epoch)+'_'+str(a)+'.pt'
             torch.save({
@@ -103,8 +116,10 @@ for epoch in range(startepoch, epochs):
                 'model_state_dict': net.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'loss': loss,
+                'scheduler_state_dict': scheduler.state_dict(),
             }, modelsavepath)
             a += 1
 
             print(f'Model saved at {modelsavepath}')
+    # Schedule learning rate
     scheduler.step(epoch_loss)
