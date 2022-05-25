@@ -1,10 +1,8 @@
-from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
-from torchvision import transforms
 from deepstormnet import DeepSTORM
 import Datastore
-from torch import optim, nn
+from torch import optim
 import torch
 from PIL import Image
 from torchvision import transforms
