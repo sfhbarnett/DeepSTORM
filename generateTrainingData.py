@@ -1,5 +1,4 @@
 import os
-
 import tifffile as tf
 from TiffStack import TiffStack
 from scipy.ndimage import gaussian_filter
@@ -30,10 +29,6 @@ highres_height = tiffstack.height*upsamplingfactor
 highres_patchsize = camerapixelsize/upsamplingfactor
 
 ntrain = min([tiffstack.nfiles*numpatches, maxexamples])
-
-#patches = np.zeros((pathsize,pathsize,ntrain)) # Not needed since we save the image output directly
-#heatmaps = np.zeros((pathsize,pathsize,ntrain))
-#spikes = np.zeros((pathsize,pathsize,ntrain))
 
 # Read in molecule positions
 localisations = []
