@@ -4,7 +4,6 @@ from torchvision import transforms
 from PIL import Image
 import random
 import numpy as np
-import matplotlib.pyplot as plt
 import tifffile as tf
 import os
 
@@ -24,7 +23,7 @@ class TiffStack:
         self.mean = 0.12578635345602895
         self.std = 0.09853518682642659
         self.upsample = 8
-        #self.getstats()
+        # self.getstats()
 
     def getimage(self, index):
         img = self.ims.pages[index].asarray()
@@ -37,19 +36,18 @@ class TiffStack:
         return img.astype('float32')
 
     def getstats(self):
-        totimage = np.zeros((self.width,self.height,self.nfiles))
+        totimage = np.zeros((self.width, self.height, self.nfiles))
         for index in range(self.nfiles):
             print(index)
             image = self.getimage(index)
             image = image.astype('float32')
             image = image-np.min(image)
             image = image / np.max(image)
-            totimage[:,:,index] = image
+            totimage[:, :, index] = image
         self.mean = np.mean(totimage)
         self.std = np.std(totimage)
         print(self.mean)
         print(self.std)
-
 
 
 def generate_masks(csvpath):
@@ -99,7 +97,6 @@ class DatastoreOTF(Dataset):
         self.masks = generate_masks('DeepSTORM dataset_v1/BIN4 - Training dataset/SimulatedDataset.csv')
         self.imstack = TiffStack('DeepSTORM dataset_v1/BIN4 - Training dataset/SimulatedDataset.tif')
 
-
     def __len__(self):
         return self.imstack.nfiles
 
@@ -108,7 +105,7 @@ class DatastoreOTF(Dataset):
             image = self.transform(self.imstack.getimageupsampled(idx))
             image -= torch.min(image)
             image /= torch.max(image)
-            masktransform = transforms.Compose([transforms.ToTensor()])
+            # masktransform = transforms.Compose([transforms.ToTensor()])
             mask = self.masks[:, :, idx]
             # Flip image and elastic deform
             image, mask = transform(image, mask)
@@ -130,23 +127,23 @@ class Datastore(Dataset):
         self.masks = os.listdir(os.path.join(self.path, 'spikes'))
         self.imgfiles.remove('.DS_Store')
         self.masks.remove('.DS_Store')
-        fordims = tf.imread(os.path.join(self.path,'img/'+self.imgfiles[0]))
+        fordims = tf.imread(os.path.join(self.path, 'img/'+self.imgfiles[0]))
         (self.width, self.height) = fordims.shape
         self.mean = 0.20957219784919204
         self.std = 0.14851551727749593
-        #self.calculate_stats()
+        # self.calculate_stats()
 
     def __len__(self):
         return len(self.imgfiles)
 
     def __getitem__(self, idx):
         if self.transform is not None:
-            image = self.transform(np.float32(tf.imread(os.path.join(self.path,'img/'+self.imgfiles[idx])))).float()
+            image = self.transform(np.float32(tf.imread(os.path.join(self.path, 'img/'+self.imgfiles[idx])))).float()
             image -= torch.min(image)
             image /= torch.max(image)
             image = (image-self.mean)/self.std
-            masktransform = transforms.Compose([transforms.ToTensor()])
-            mask = tf.imread(os.path.join(self.path,'spikes/'+self.masks[idx]))
+            # masktransform = transforms.Compose([transforms.ToTensor()])
+            mask = tf.imread(os.path.join(self.path, 'spikes/'+self.masks[idx]))
             # Flip image and elastic deform
             image, mask = transform(image, mask)
             # mask -= torch.min(mask)
@@ -159,32 +156,21 @@ class Datastore(Dataset):
         return sample
 
     def calculate_stats(self):
-        totalim = np.zeros((self.width,self.height,len(self.imgfiles)))
+        totalim = np.zeros((self.width, self.height, len(self.imgfiles)))
         for i in range(len(self.imgfiles)):
             print(i)
-            image = tf.imread(os.path.join(self.path,'img/'+self.imgfiles[i]))
+            image = tf.imread(os.path.join(self.path, 'img/'+self.imgfiles[i]))
             image = image.astype('float32')
             image -= np.min(image)
             image /= np.max(image)
-            totalim[:,:,i] = image
+            totalim[:, :, i] = image
         self.mean = np.mean(totalim)
         self.std = np.std(totalim)
         print(self.mean)
         print(self.std)
 
 
-
 if __name__ == '__main__':
     tforms = transforms.Compose([transforms.ToTensor()])
     ds = Datastore(tforms)
     files = ds.imgfiles
-    for f in files:
-        if f[-4:] != ".tif":
-            print(f)
-    #sample = ds[1]
-    #plt.imshow(sample['image'].detach().numpy().squeeze())
-    #plt.figure()
-    #plt.imshow(sample['mask'].detach().numpy().squeeze())
-    #plt.show()
-
-
