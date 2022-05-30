@@ -136,8 +136,7 @@ def train():
 def predict():
     filelist = os.listdir('/Users/sbarnett/PycharmProjects/DeepSTORM/DeepSTORM/models')
     imagepath = '/Users/sbarnett/PycharmProjects/DeepSTORM/DeepSTORM/DeepSTORM dataset_v1/BIN4_glia_actin_2D.tif'
-    ts = Datastore.TiffStackPredict(imagepath)
-    img1 = ts.getimage(0)
+    ts = Datastore.TiffStack(imagepath)
     net = DeepSTORM()
     net.eval()
     filelist = natsort(filelist)
@@ -155,7 +154,7 @@ def predict():
 
     for index in range(100):
         print(index)
-        image = ts.getimage(index)
+        image = ts.getimageupsampled(index)
         timg1 = tforms(image)
         timg1 -= torch.min(timg1)
         timg1 /= torch.max(timg1)

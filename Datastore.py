@@ -21,32 +21,16 @@ class TiffStack:
         page = self.ims.pages[0]
         self.width = page.shape[0]
         self.height = page.shape[1]
-        self.upsample = 8
-
-    def getimage(self, index):
-        img = self.ims.pages[index].asarray()
-        newsize = tuple([self.upsample*x for x in img.shape])
-        img = np.array(Image.fromarray(img).resize(newsize, Image.Resampling.NEAREST))
-        return img.astype('float32')
-
-class TiffStackPredict:
-    """
-    Tiffstack holds information about the images to process and accesses them in a memory-efficient manner
-    improvements: implement a TiffFile class for each image to more readily access parameters such as width/height
-    :param pathname to the tif image
-    """
-    def __init__(self, pathname):
-        self.ims = tf.TiffFile(pathname)
-        self.nfiles = len(self.ims.pages)
-        page = self.ims.pages[0]
-        self.width = page.shape[0]
-        self.height = page.shape[1]
         self.mean = 0.12578635345602895
         self.std = 0.09853518682642659
         self.upsample = 8
         #self.getstats()
 
     def getimage(self, index):
+        img = self.ims.pages[index].asarray()
+        return img
+
+    def getimageupsampled(self, index):
         img = self.ims.pages[index].asarray()
         newsize = tuple([self.upsample*x for x in img.shape])
         img = np.array(Image.fromarray(img).resize(newsize, Image.Resampling.NEAREST))
@@ -121,7 +105,7 @@ class DatastoreOTF(Dataset):
 
     def __getitem__(self, idx):
         if self.transform is not None:
-            image = self.transform(self.imstack.getimage(idx))
+            image = self.transform(self.imstack.getimageupsampled(idx))
             image -= torch.min(image)
             image /= torch.max(image)
             masktransform = transforms.Compose([transforms.ToTensor()])
@@ -132,7 +116,7 @@ class DatastoreOTF(Dataset):
             mask /= torch.max(mask)
             sample = {'image': image.float(), 'mask': mask.float()}
         else:
-            image = self.imstack.getimage(idx)
+            image = self.imstack.getimageupsampled(idx)
             mask = self.masks[:, :, idx]
             sample = {'image': image, 'mask': mask}
         return sample
@@ -158,7 +142,6 @@ class Datastore(Dataset):
     def __getitem__(self, idx):
         if self.transform is not None:
             image = self.transform(np.float32(tf.imread(os.path.join(self.path,'img/'+self.imgfiles[idx])))).float()
-            plt.imshow(image.detach().numpy().squeeze())
             image -= torch.min(image)
             image /= torch.max(image)
             image = (image-self.mean)/self.std
@@ -170,7 +153,7 @@ class Datastore(Dataset):
             # mask /= torch.max(mask)
             sample = {'image': image.float(), 'mask': mask.float()}
         else:
-            image = self.imstack.getimage(idx)
+            image = self.imstack.getimageupsampled(idx)
             mask = self.masks[:, :, idx]
             sample = {'image': image, 'mask': mask}
         return sample

@@ -130,5 +130,5 @@ dmypy.json
 
 *.tif
 *.csv
-
+.DS_Store
 *.pt
