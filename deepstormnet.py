@@ -6,7 +6,10 @@ class DeepSTORM(nn.Module):
         self.down1 = Down(1, 32)
         self.down2 = Down(32, 64)
         self.down3 = Down(64, 128)
-        self.midsection = nn.Conv2d(128, 512, kernel_size=(3, 3), padding=1, padding_mode='replicate', bias=False)
+        self.midsection = nn.Sequential(
+            nn.Conv2d(128, 512, kernel_size=(3, 3), padding=1, padding_mode='replicate', bias=False),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True))
         self.up1 = Up(512, 128)
         self.up2 = Up(128, 64)
         self.up3 = Up(64, 32)
@@ -24,12 +27,11 @@ class DeepSTORM(nn.Module):
         return up
 
 
-
 class Down(nn.Module):
     def __init__(self, inchannels, outchannels):
         super(Down, self).__init__()
         self.level = nn.Sequential(
-            nn.Conv2d(inchannels, outchannels, kernel_size=3, padding=1, padding_mode='replicate', bias=False),
+            nn.Conv2d(inchannels, outchannels, kernel_size=(3,3), padding=1, padding_mode='replicate', bias=False),
             nn.BatchNorm2d(outchannels),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(2)
@@ -39,13 +41,15 @@ class Down(nn.Module):
         x = self.level(x)
         return x
 
+
 class Up(nn.Module):
     def __init__(self, inchannels, outchannels):
         super(Up, self).__init__()
         #self.up = nn.ConvTranspose2d(inchannels, inchannels, stride=2, kernel_size=2)
-        self.up = nn.Upsample(scale_factor=2)
+        #self.up = nn.Upsample(scale_factor=2)
+        self.up = nn.UpsamplingNearest2d(scale_factor=2)
         self.conv = nn.Sequential(
-            nn.Conv2d(inchannels, outchannels, kernel_size=3, padding=1, padding_mode='replicate', bias=False),
+            nn.Conv2d(inchannels, outchannels, kernel_size=(3,3), padding=1, padding_mode='replicate', bias=False),
             nn.BatchNorm2d(outchannels),
             nn.ReLU(inplace=True))
 

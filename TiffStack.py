@@ -18,7 +18,7 @@ class TiffStack:
         self.mean = 0.12578635345602895
         self.std = 0.09853518682642659
         self.upsample = 8
-        # self.getstats()
+        #self.getstats()
 
     def getimage(self, index):
         img = self.ims.pages[index].asarray()
@@ -32,13 +32,17 @@ class TiffStack:
 
     def getstats(self):
         totimage = np.zeros((self.width, self.height, self.nfiles))
+        means = []
+        stds = []
         for index in range(self.nfiles):
             print(index)
             image = self.getimage(index)
             image = image.astype('float32')
             image = image-np.min(image)
             image = image / np.max(image)
-            totimage[:, :, index] = image
+            totimage[:,:,index] = image
+            means.append(np.mean(image))
+            stds.append(np.std(image))
         self.mean = np.mean(totimage)
         self.std = np.std(totimage)
         print(self.mean)
