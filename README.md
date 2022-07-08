@@ -13,7 +13,7 @@ Images left to right:
 
 On the left is the diffraction limited max projection of STORM dataset, on the right is the partially processed DeepSTORM image (660/10000 frames). 
 
-<img width="425" alt="image" src="https://user-images.githubusercontent.com/45679976/172792642-477fa20a-71d0-4b9f-9343-28ff567771f4.png"> <img width="425" alt="image" src="https://user-images.githubusercontent.com/45679976/172792581-05d6d60f-38d5-4a22-8846-8c9513439d19.png">
+<img width="425" alt="image" src="https://user-images.githubusercontent.com/45679976/172792642-477fa20a-71d0-4b9f-9343-28ff567771f4.png"> <img width="804" alt="image" src="https://user-images.githubusercontent.com/45679976/177753308-b523dba4-70f6-48dc-902a-a3dd22ba99cf.png">
 
 
 Original Deep-STORM repository written in Keras/Tensorflow.
@@ -21,3 +21,9 @@ https://github.com/EliasNehme/Deep-STORM
 
 Deep-STORM paper:
 https://opg.optica.org/optica/fulltext.cfm?uri=optica-5-4-458&id=385495
+
+Keras Colab:
+https://github.com/HenriquesLab/ZeroCostDL4Mic
+
+Data:
+https://zenodo.org/record/3959089#.Xxrko2MzaV4
